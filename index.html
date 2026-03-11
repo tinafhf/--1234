@@ -172,7 +172,7 @@
             }
         }
 
-        // 图片压缩 (LocalStorage容量有限，必须大幅压缩)
+        // 图片压缩
         async function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -188,7 +188,7 @@
                         canvas.width = maxWidth;
                         canvas.height = img.height * scale;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.4)); // 质量设为 0.4
+                        resolve(canvas.toDataURL('image/jpeg', 0.4));
                     };
                 };
             });
@@ -237,4 +237,82 @@
             const now = new Date();
             const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '
+            const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+
+            elements.statsGrid.innerHTML = categories.map(cat => {
+                const currentSum = expenses.filter(e => e.category === cat && e.date.startsWith(monthStr)).reduce((sum, e) => sum + e.amount, 0);
+                const lastSum = expenses.filter(e => e.category === cat && e.date.startsWith(lastMonthStr)).reduce((sum, e) => sum + e.amount, 0);
+                const isOver = currentSum > lastSum && lastSum > 0;
+                return `
+                    <div class="bg-white p-5 rounded-2xl border-l-4 border-[#002FA7] shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-black text-gray-400 uppercase">${cat}</span>
+                            <span class="text-[9px] ${isOver ? 'text-red-500' : 'text-emerald-500'} font-bold">${isOver ? '⚠️ 超额' : '✅ 正常'}</span>
+                        </div>
+                        <div class="text-2xl font-black text-gray-900">¥${currentSum.toLocaleString()}</div>
+                        <div class="text-[10px] text-gray-400 mt-1">上月: ¥${lastSum.toLocaleString()}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+            elements.detailList.innerHTML = sorted.length > 0 ? sorted.map(e => `
+                <div class="p-4 flex items-center justify-between active:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-4">
+                        ${e.photo ? `<img src="${e.photo}" class="w-12 h-12 rounded-lg object-cover cursor-pointer" onclick="window.showImg('${e.photo}')">` : `<div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] text-gray-300">无图</div>`}
+                        <div>
+                            <div class="text-sm font-black text-gray-800">${e.category}</div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase">${e.date}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-black klein-blue">¥${e.amount.toFixed(2)}</div>
+                        <button onclick="window.deleteRecord(${e.id})" class="text-[9px] text-red-300 font-black uppercase p-2">删除</button>
+                    </div>
+                </div>
+            `).join('') : '<div class="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">暂无记录</div>';
+        }
+
+        window.showImg = (src) => { elements.modalImg.src = src; elements.modal.classList.remove('hidden'); };
+        
+        window.deleteRecord = (id) => {
+            if(!confirm('确定删除此条记录？')) return;
+            expenses = expenses.filter(e => e.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+            renderDashboard();
+            showToast('已删除');
+        };
+
+        elements.exportBtn.addEventListener('click', () => {
+            if (!expenses.length) return showToast('没有数据可导出');
+            const headers = ['日期', '类别', '金额'];
+            const rows = expenses.map(e => [e.date, e.category, e.amount]);
+            const csvContent = "\ufeff" + [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `个人账本备份_${new Date().toLocaleDateString()}.csv`);
+            link.click();
+        });
+
+        elements.resetBtn.addEventListener('click', () => {
+            if(!confirm('确定要清空手机上的所有历史数据吗？此操作不可撤销。')) return;
+            expenses = [];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+            renderDashboard();
+            showToast('数据已清空');
+        });
+
+        function showToast(msg) {
+            elements.toast.innerText = msg;
+            elements.toast.classList.remove('opacity-0');
+            setTimeout(() => elements.toast.classList.add('opacity-0'), 2500);
+        }
+
+        window.onload = () => { 
+            document.getElementById('date').value = new Date().toISOString().split('T')[0]; 
+            elements.loginInput.focus();
+        };
+    </script>
+</body>
+</html>
