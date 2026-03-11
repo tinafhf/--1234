@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海拉尔试驾陪同口译助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .highlight { color: #e11d48; font-weight: 700; }
+        .korean-text { color: #2563eb; font-weight: 600; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        .sticky-header { position: sticky; top: 0; z-index: 50; }
+        .card { border-radius: 12px; transition: all 0.3s; }
+        .card:active { background-color: #f1f5f9; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans leading-relaxed">
+
+    <!-- 顶部导航 -->
+    <nav class="sticky-header bg-slate-900 text-white p-4 shadow-lg">
+        <div class="flex justify-between items-center mb-2">
+            <h1 class="text-xl font-bold text-blue-400">海拉尔项目 (3.13-15)</h1>
+            <span class="text-xs bg-red-600 px-2 py-1 rounded">找唐柯签字!</span>
+        </div>
+        <div class="flex gap-2 overflow-x-auto text-sm pb-1">
+            <a href="#testdrive" class="bg-slate-700 px-3 py-1 rounded-full whitespace-nowrap">🚗 试驾技术</a>
+            <a href="#schedule" class="bg-slate-700 px-3 py-1 rounded-full whitespace-nowrap">⏱️ 现场调度</a>
+            <a href="#tourism" class="bg-slate-700 px-3 py-1 rounded-full whitespace-nowrap">🗺️ 景点导游</a>
+            <a href="#war" class="bg-red-800 px-3 py-1 rounded-full whitespace-nowrap font-bold">⚠️ 战时急救</a>
+        </div>
+    </nav>
+
+    <main class="p-4 space-y-8 pb-20">
+
+        <!-- 试驾技术部分 -->
+        <section id="testdrive" class="space-y-4">
+            <h2 class="text-lg font-bold border-l-4 border-blue-500 pl-2">🚗 汽车试驾：技术细节</h2>
+            <div class="grid gap-3">
+                <div class="bg-white p-4 shadow-sm border border-slate-200 card">
+                    <div class="text-sm text-slate-500 mb-1">智能座舱核心</div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-700">抬头显示 (<span class="highlight">HUD</span>)</span>
+                        <span class="korean-text text-lg">헤드업 디스플레이 (HUD)</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 shadow-sm border border-slate-200 card">
+                    <div class="text-sm text-slate-500 mb-1">严寒必备配置</div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-700"><span class="highlight">座椅/方向盘加热</span></span>
+                        <span class="korean-text text-lg">열선 시트 / 핸들 열선</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 shadow-sm border border-slate-200 card">
+                    <div class="text-sm text-slate-500 mb-1">冰雪路面性能</div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-700"><span class="highlight">抓地力 / 扭矩</span></span>
+                        <span class="korean-text text-lg">접지력 / 토크</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 shadow-sm border border-slate-200 card">
+                    <div class="text-sm text-slate-500 mb-1">高端车配置</div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-700">空气悬架 / 离地间隙</span>
+                        <span class="korean-text text-lg">에어 서스펜션 / 지상고</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 调度话术 -->
+        <section id="schedule" class="space-y-4">
+            <h2 class="text-lg font-bold border-l-4 border-green-500 pl-2">⏱️ 现场调度与引导</h2>
+            <div class="space-y-3">
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p class="text-sm font-semibold text-green-700">车辆就绪</p>
+                    <p class="font-bold">第1批车辆已经准备就绪，请出发。</p>
+                    <p class="korean-text mt-1">1차수 차량 준비되었습니다. 출발해 주십시오.</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p class="text-sm font-semibold text-green-700">安全提醒</p>
+                    <p class="font-bold">请跟随头车，<span class="highlight">保持安全车距</span>。</p>
+                    <p class="korean-text mt-1">선두 차량을 따라 안전거리를 유지해 주십시오.</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p class="text-sm font-semibold text-green-700">换乘环节</p>
+                    <p class="font-bold">请在换乘点进行<span class="highlight">驾驶员交替</span>。</p>
+                    <p class="korean-text mt-1">교대 지점에서 운전자를 교체해 주십시오.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 景点导游 -->
+        <section id="tourism" class="space-y-4">
+            <h2 class="text-lg font-bold border-l-4 border-amber-500 pl-2">🗺️ 景点导游金句</h2>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+                <div class="p-4 border-b">
+                    <p class="text-xs text-amber-600 font-bold">呼伦贝尔大草原</p>
+                    <p class="font-bold text-sm mb-1">这是世界四大草原之一，中国最美的草原。</p>
+                    <p class="korean-text text-sm">세계 4대 초원이자 중국에서 가장 아름다운 초원입니다.</p>
+                </div>
+                <div class="p-4 border-b">
+                    <p class="text-xs text-amber-600 font-bold">莫日格勒河 (天下第一曲水)</p>
+                    <p class="font-bold text-sm mb-1">这条河被称为“天下第一曲水”，弯曲如缎带。</p>
+                    <p class="korean-text text-sm">‘천하제일 곡수’라 불리며 실크처럼 굽이치는 것이 특징입니다.</p>
+                </div>
+                <div class="p-4">
+                    <p class="text-xs text-amber-600 font-bold">商务宴请/蒙元文化</p>
+                    <p class="font-bold text-sm mb-1">晚餐我们将体验蒙古传统的<span class="highlight">“手把肉”</span>和下马酒。</p>
+                    <p class="korean-text text-sm">만찬으로 몽골 전통 양고기 요리와 환영주를 즐기시겠습니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 战时急救 (超大字号) -->
+        <section id="war" class="space-y-4">
+            <h2 class="text-lg font-bold border-l-4 border-red-600 pl-2 text-red-600">⚠️ 战时模式：极简急救</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-red-600 text-white p-4 rounded-lg text-center">
+                    <div class="text-xs opacity-80">请上车</div>
+                    <div class="font-bold text-lg">탑승하십시오</div>
+                </div>
+                <div class="bg-red-600 text-white p-4 rounded-lg text-center">
+                    <div class="text-xs opacity-80">小心滑倒</div>
+                    <div class="font-bold text-lg">미끄럼 주의</div>
+                </div>
+                <div class="bg-slate-800 text-white p-4 rounded-lg text-center">
+                    <div class="text-xs opacity-80">请稍等</div>
+                    <div class="font-bold text-lg">잠시만 대기</div>
+                </div>
+                <div class="bg-slate-800 text-white p-4 rounded-lg text-center">
+                    <div class="text-xs opacity-80">我去确认</div>
+                    <div class="font-bold text-lg">확인하겠습니다</div>
+                </div>
+            </div>
+            <div class="bg-red-50 p-4 border-2 border-dashed border-red-300 rounded-xl text-center">
+                <p class="text-red-600 font-black text-xl mb-1 italic">！！！找唐柯签字！！！</p>
+                <p class="korean-text">서명 부탁드립니다</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 底部固定栏 -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-around text-[10px] text-slate-500 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div class="text-center">形象：商务正装</div>
+        <div class="text-center">气温：-10~5℃</div>
+        <div class="text-center font-bold text-red-600">认准：唐柯签字</div>
+    </footer>
+
+</body>
+</html>
