@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭月度开销监控站 - 云端同步版</title>
+    <title>家庭月度开销监控站 - 个人私密版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -24,15 +24,6 @@
             background-position: right 1rem center;
             background-size: 1.1rem;
         }
-        .loader {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #002FA7;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen py-12 px-4">
@@ -40,26 +31,19 @@
     <!-- 登录锁屏界面 -->
     <div id="login-overlay" class="fixed inset-0 bg-[#f0f2f5] z-[100] flex flex-col items-center justify-center p-6">
         <div class="max-w-xs w-full text-center">
-            <h1 class="text-3xl font-black text-gray-900 mb-8 tracking-tighter uppercase italic"><span class="klein-blue">Shared</span> Ledger</h1>
+            <h1 class="text-3xl font-black text-gray-900 mb-8 tracking-tighter uppercase italic"><span class="klein-blue">Private</span> Ledger</h1>
             <div class="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">验证家庭权限</p>
-                <input type="password" id="login-input" placeholder="请输入家庭验证码" class="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-center text-sm font-bold input-focus transition-all mb-4" />
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">验证访问权限</p>
+                <input type="password" id="login-input" placeholder="请输入验证码" class="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-center text-sm font-bold input-focus transition-all mb-4" />
                 <button id="login-btn" class="w-full bg-klein-blue text-white rounded-xl py-3 text-sm font-black hover:bg-blue-900 transition-all flex items-center justify-center">
-                    解锁并同步
+                    解锁进入
                 </button>
                 <p id="login-error" class="text-red-500 text-[10px] mt-3 font-bold opacity-0 transition-opacity">验证码错误</p>
             </div>
             <footer class="mt-12 text-gray-300 font-black text-[10px] uppercase tracking-widest italic">
-                Family Sync Active
+                Secure Local Storage
             </footer>
         </div>
-    </div>
-
-    <!-- 初始连接加载状态 -->
-    <div id="loading-overlay" class="fixed inset-0 bg-[#f0f2f5] z-[90] hidden flex flex-col items-center justify-center">
-        <div class="loader mb-4"></div>
-        <p id="loading-text" class="text-sm font-black text-gray-400 tracking-widest uppercase text-center px-4">正在同步实时数据...</p>
-        <button id="force-entry" class="mt-8 text-[10px] text-blue-500 font-bold hidden underline">如果长时间没反应，点击尝试强制进入</button>
     </div>
 
     <div class="max-w-5xl mx-auto">
@@ -79,7 +63,7 @@
                     <section class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 sticky top-8">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-lg font-black klein-blue">新增记录</h3>
-                            <span class="text-[9px] font-black bg-blue-50 text-[#002FA7] px-2 py-1 rounded">Family Mode</span>
+                            <span class="text-[9px] font-black bg-blue-50 text-[#002FA7] px-2 py-1 rounded">本地模式</span>
                         </div>
                         <form id="expense-form" class="space-y-4">
                             <div>
@@ -107,7 +91,7 @@
                                 <canvas id="compress-canvas" style="display:none;"></canvas>
                             </div>
                             <button type="submit" id="submit-btn" class="w-full bg-klein-blue text-white rounded-xl py-3 text-sm font-black hover:bg-blue-900 transition-all shadow-lg shadow-blue-100">
-                                确认云端同步
+                                保存记录
                             </button>
                         </form>
                     </section>
@@ -119,16 +103,19 @@
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="p-6 border-b border-gray-50 flex justify-between items-center">
                             <h3 class="font-black text-gray-800">近期明细</h3>
-                            <button id="export-btn" class="text-xs font-bold text-[#002FA7] hover:underline">导出 CSV</button>
+                            <div class="flex gap-4">
+                                <button id="export-btn" class="text-xs font-bold text-[#002FA7] hover:underline">备份</button>
+                                <button id="reset-btn" class="text-xs font-bold text-red-300 hover:text-red-500">重置</button>
+                            </div>
                         </div>
-                        <div id="detail-list" class="divide-y divide-gray-50 max-h-[600px] overflow-y-auto"></div>
+                        <div id="detail-list" class="divide-y divide-gray-50 max-h-[600px] overflow-y-auto text-sm"></div>
                     </div>
                 </div>
             </div>
         </section>
 
         <footer class="mt-20 text-center">
-            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Cloud Ledger v4.5 (Mobile Fix)</span>
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Personal Ledger v5.0 / Offline Mode</span>
         </footer>
     </div>
 
@@ -137,44 +124,21 @@
         <img id="modal-content" src="" class="max-w-full max-h-full rounded-lg shadow-2xl">
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none text-center min-w-[200px]">提示消息</div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none text-center">提示消息</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, query, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // 配置信息 (使用您提供的图片中的配置)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyAEZIV2HinNgL-8fTiRTlkXZPOLD1MEc9s",
-            authDomain: "my-family-ledger-26989.firebaseapp.com",
-            projectId: "my-family-ledger-26989",
-            storageBucket: "my-family-ledger-26989.firebasestorage.app",
-            messagingSenderId: "70128473976",
-            appId: "1:70128473976:web:9978d06dfec9d3689b9a8d",
-            measurementId: "G-VQYTWHCXYW"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'family-sync-v4';
-
+    <script>
+        // 配置与初始化
         const CORRECT_PASS = '369369';
-        let user = null;
-        let expenses = [];
-        let isAuthenticating = false;
-        let syncTimeout;
+        const STORAGE_KEY = 'family_ledger_local_v5';
         const categories = ["菜钱", "水费", "电费", "燃气费", "出差翻译费", "行路支出"];
+        
+        let expenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
         const elements = {
             loginOverlay: document.getElementById('login-overlay'),
             loginInput: document.getElementById('login-input'),
             loginBtn: document.getElementById('login-btn'),
             loginError: document.getElementById('login-error'),
-            loadingOverlay: document.getElementById('loading-overlay'),
-            loadingText: document.getElementById('loading-text'),
-            forceEntryBtn: document.getElementById('force-entry'),
             mainContent: document.getElementById('main-content'),
             expenseForm: document.getElementById('expense-form'),
             statsGrid: document.getElementById('stats-grid'),
@@ -182,109 +146,33 @@
             photoInput: document.getElementById('photo-input'),
             submitBtn: document.getElementById('submit-btn'),
             exportBtn: document.getElementById('export-btn'),
+            resetBtn: document.getElementById('reset-btn'),
             toast: document.getElementById('toast'),
             modal: document.getElementById('img-modal'),
             modalImg: document.getElementById('modal-content')
         };
 
-        // 统一身份验证：返回 Promise 确保在手机端被严格等待
-        const initAuth = async () => {
-            if (user) return user;
-            if (isAuthenticating) return new Promise(resolve => {
-                const check = setInterval(() => {
-                    if (user) { clearInterval(check); resolve(user); }
-                }, 100);
-            });
-            
-            isAuthenticating = true;
-            try {
-                let u;
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const result = await signInWithCustomToken(auth, __initial_auth_token);
-                    u = result.user;
-                } else {
-                    const result = await signInAnonymously(auth);
-                    u = result.user;
-                }
-                user = u;
-                return u;
-            } catch (err) {
-                console.error("Auth Error:", err);
-                showToast("连接云端失败，请检查手机网络");
-                return null;
-            } finally {
-                isAuthenticating = false;
-            }
-        };
-
-        onAuthStateChanged(auth, (u) => { 
-            if (u) user = u;
-        });
-
+        // 登录逻辑
         elements.loginBtn.addEventListener('click', handleLogin);
         elements.loginInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleLogin(); });
 
-        async function handleLogin() {
-            const inputVal = elements.loginInput.value.trim();
-            if (inputVal === CORRECT_PASS) {
-                elements.loginError.classList.add('opacity-0');
-                elements.loginOverlay.classList.add('hidden');
-                elements.loadingOverlay.classList.remove('hidden');
-                
-                // 设置移动端超时保险丝
-                syncTimeout = setTimeout(() => {
-                    elements.loadingText.innerText = "手机网络连接较慢，正在努力加载中...";
-                    elements.forceEntryBtn.classList.remove('hidden');
-                }, 6000);
-
-                // 强制等待身份验证完成
-                const authenticatedUser = await initAuth();
-                if (authenticatedUser) {
-                    startSync();
-                } else {
-                    showToast("身份验证超时，点击强制进入");
-                    elements.forceEntryBtn.classList.remove('hidden');
-                }
+        function handleLogin() {
+            if (elements.loginInput.value.trim() === CORRECT_PASS) {
+                elements.loginOverlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    elements.loginOverlay.classList.add('hidden');
+                    elements.mainContent.classList.remove('hidden');
+                    setTimeout(() => elements.mainContent.classList.add('opacity-100'), 100);
+                    renderDashboard();
+                }, 500);
             } else {
                 elements.loginError.classList.remove('opacity-0');
+                elements.loginInput.value = '';
+                elements.loginInput.focus();
             }
         }
 
-        elements.forceEntryBtn.addEventListener('click', () => {
-            enterApp();
-            showToast("已强制载入界面");
-        });
-
-        function enterApp() {
-            clearTimeout(syncTimeout);
-            elements.loadingOverlay.classList.add('hidden');
-            elements.mainContent.classList.remove('hidden');
-            setTimeout(() => elements.mainContent.classList.add('opacity-100'), 100);
-            renderDashboard();
-        }
-
-        function startSync() {
-            if (!user) return;
-
-            const q = collection(db, 'artifacts', appId, 'public', 'data', 'expenses_final');
-            
-            // 实时同步，带手机端容错回调
-            onSnapshot(q, (snapshot) => {
-                expenses = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(exp => exp.pass === CORRECT_PASS)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date));
-                
-                enterApp();
-            }, (err) => {
-                console.error("Sync Error:", err);
-                if (err.code === 'permission-denied') {
-                    showToast("同步权限错误，请检查 Firebase 规则");
-                }
-                enterApp(); // 出错也要进界面，保证录入功能可用
-            });
-        }
-
+        // 图片压缩 (LocalStorage容量有限，必须大幅压缩)
         async function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -295,12 +183,12 @@
                     img.onload = () => {
                         const canvas = document.getElementById('compress-canvas');
                         const ctx = canvas.getContext('2d');
-                        const maxWidth = 800;
+                        const maxWidth = 500; 
                         const scale = maxWidth / img.width;
                         canvas.width = maxWidth;
                         canvas.height = img.height * scale;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        resolve(canvas.toDataURL('image/jpeg', 0.4)); // 质量设为 0.4
                     };
                 };
             });
@@ -308,11 +196,8 @@
 
         elements.expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const u = await initAuth(); // 提交前再次确认登录状态
-            if (!u) return showToast("未连接到云端，请检查网络");
-            
             elements.submitBtn.disabled = true;
-            elements.submitBtn.innerText = '正在同步...';
+            elements.submitBtn.innerText = '正在保存...';
 
             const category = document.getElementById('category').value;
             const amount = parseFloat(document.getElementById('amount').value);
@@ -323,88 +208,33 @@
                 photoData = await compressImage(elements.photoInput.files[0]);
             }
 
+            const newRecord = {
+                id: Date.now(),
+                category,
+                amount,
+                date,
+                photo: photoData,
+                createdAt: new Date().toISOString()
+            };
+
+            expenses.push(newRecord);
             try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'expenses_final'), {
-                    pass: CORRECT_PASS,
-                    category,
-                    amount,
-                    date,
-                    photo: photoData,
-                    createdAt: new Date().toISOString()
-                });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+                showToast('已保存到手机本地');
                 elements.expenseForm.reset();
                 document.getElementById('date').value = new Date().toISOString().split('T')[0];
-                showToast('同步成功！家人已可见');
+                renderDashboard();
             } catch (err) {
-                console.error("Save Error:", err);
-                showToast('保存失败，请检查网络权限');
-            } finally {
-                elements.submitBtn.disabled = false;
-                elements.submitBtn.innerText = '确认云端同步';
+                showToast('存储空间已满，请清理旧记录');
+                expenses.pop();
             }
+
+            elements.submitBtn.disabled = false;
+            elements.submitBtn.innerText = '保存记录';
         });
 
         function renderDashboard() {
             const now = new Date();
             const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-
-            elements.statsGrid.innerHTML = categories.map(cat => {
-                const currentSum = expenses.filter(e => e.category === cat && e.date.startsWith(monthStr)).reduce((sum, e) => sum + e.amount, 0);
-                const lastSum = expenses.filter(e => e.category === cat && e.date.startsWith(lastMonthStr)).reduce((sum, e) => sum + e.amount, 0);
-                const isOver = currentSum > lastSum && lastSum > 0;
-                return `
-                    <div class="bg-white p-5 rounded-2xl border-l-4 border-[#002FA7] shadow-sm">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-[10px] font-black text-gray-400 uppercase">${cat}</span>
-                            <span class="text-[9px] ${isOver ? 'text-red-500' : 'text-emerald-500'} font-bold">${isOver ? '⚠️ 超额' : '✅ 正常'}</span>
-                        </div>
-                        <div class="text-2xl font-black text-gray-900">¥${currentSum.toLocaleString()}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">上月: ¥${lastSum.toLocaleString()}</div>
-                    </div>
-                `;
-            }).join('');
-
-            elements.detailList.innerHTML = expenses.length > 0 ? expenses.map(e => `
-                <div class="p-4 flex items-center justify-between active:bg-gray-100 transition-colors">
-                    <div class="flex items-center space-x-4">
-                        ${e.photo ? `<img src="${e.photo}" class="w-12 h-12 rounded-lg object-cover cursor-pointer" onclick="window.showImg('${e.photo}')">` : `<div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] text-gray-300">无图</div>`}
-                        <div>
-                            <div class="text-sm font-black text-gray-800">${e.category}</div>
-                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">${e.date}</div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm font-black klein-blue">¥${e.amount.toFixed(2)}</div>
-                        <button onclick="window.deleteRecord('${e.id}')" class="text-[9px] text-red-300 font-black uppercase p-2">删除</button>
-                    </div>
-                </div>
-            `).join('') : '<div class="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">暂无记录</div>';
-        }
-
-        window.showImg = (src) => { elements.modalImg.src = src; elements.modal.classList.remove('hidden'); };
-        window.deleteRecord = async (id) => {
-            if(!confirm('确定从所有设备删除此条记录？')) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'expenses_final', id));
-                showToast('已删除');
-            } catch (err) {
-                showToast("删除失败");
-            }
-        };
-
-        function showToast(msg) {
-            elements.toast.innerText = msg;
-            elements.toast.classList.remove('opacity-0');
-            setTimeout(() => elements.toast.classList.add('opacity-0'), 3500);
-        }
-
-        window.onload = () => { 
-            document.getElementById('date').value = new Date().toISOString().split('T')[0]; 
-            // 预加载验证
-            initAuth();
-        };
-    </script>
-</body>
-</html>
+            const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '
