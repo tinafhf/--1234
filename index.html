@@ -43,7 +43,6 @@
             <h1 class="text-3xl font-black text-gray-900 mb-8 tracking-tighter uppercase italic"><span class="klein-blue">Shared</span> Ledger</h1>
             <div class="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">验证家庭权限</p>
-                <!-- 已去除具体的 369369 提示文字 -->
                 <input type="password" id="login-input" placeholder="请输入家庭验证码" class="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-center text-sm font-bold input-focus transition-all mb-4" />
                 <button id="login-btn" class="w-full bg-klein-blue text-white rounded-xl py-3 text-sm font-black hover:bg-blue-900 transition-all flex items-center justify-center">
                     解锁并同步
@@ -59,7 +58,8 @@
     <!-- 初始连接加载状态 -->
     <div id="loading-overlay" class="fixed inset-0 bg-[#f0f2f5] z-[90] hidden flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-sm font-black text-gray-400 tracking-widest uppercase">正在同步实时数据...</p>
+        <p id="loading-text" class="text-sm font-black text-gray-400 tracking-widest uppercase text-center px-4">正在同步实时数据...</p>
+        <button id="force-entry" class="mt-8 text-[10px] text-blue-500 font-bold hidden">如果长时间没反应，点击尝试强制进入</button>
     </div>
 
     <div class="max-w-5xl mx-auto">
@@ -128,7 +128,7 @@
         </section>
 
         <footer class="mt-20 text-center">
-            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Cloud Ledger v4.3</span>
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Cloud Ledger v4.4</span>
         </footer>
     </div>
 
@@ -137,16 +137,13 @@
         <img id="modal-content" src="" class="max-w-full max-h-full rounded-lg">
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none">提示消息</div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none text-center">提示消息</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, query, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // 云端配置
-        // ==========================================
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyAEZIV2HinNgL-8fTiRTlkXZPOLD1MEc9s",
             authDomain: "my-family-ledger-26989.firebaseapp.com",
@@ -162,10 +159,11 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'family-sync-v4';
 
-        const CORRECT_PASS = '369369'; // 核心验证码保持不变
+        const CORRECT_PASS = '369369';
         let user = null;
         let expenses = [];
         let isAuthenticating = false;
+        let syncTimeout;
         const categories = ["菜钱", "水费", "电费", "燃气费", "出差翻译费", "行路支出"];
 
         const elements = {
@@ -174,6 +172,8 @@
             loginBtn: document.getElementById('login-btn'),
             loginError: document.getElementById('login-error'),
             loadingOverlay: document.getElementById('loading-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            forceEntryBtn: document.getElementById('force-entry'),
             mainContent: document.getElementById('main-content'),
             expenseForm: document.getElementById('expense-form'),
             statsGrid: document.getElementById('stats-grid'),
@@ -197,6 +197,7 @@
                 }
             } catch (err) {
                 console.error("Auth Error:", err);
+                showToast("连接失败。请确保 Firebase 开启了 Anonymous Auth。");
             } finally {
                 isAuthenticating = false;
             }
@@ -204,9 +205,7 @@
 
         onAuthStateChanged(auth, (u) => { 
             user = u;
-            if (!u && !isAuthenticating) {
-                initAuth();
-            }
+            if (!u && !isAuthenticating) initAuth();
         });
 
         elements.loginBtn.addEventListener('click', handleLogin);
@@ -218,11 +217,30 @@
                 elements.loginOverlay.classList.add('hidden');
                 elements.loadingOverlay.classList.remove('hidden');
                 
+                // 设置超时监控
+                syncTimeout = setTimeout(() => {
+                    elements.loadingText.innerText = "数据同步缓慢，请检查网络或 Firebase Firestore 是否已开启（测试模式）";
+                    elements.forceEntryBtn.classList.remove('hidden');
+                }, 8000);
+
                 if (!user) await initAuth();
                 startSync();
             } else {
                 elements.loginError.classList.remove('opacity-0');
             }
+        }
+
+        elements.forceEntryBtn.addEventListener('click', () => {
+            enterApp();
+            showToast("已尝试强制进入，部分数据可能延迟显示");
+        });
+
+        function enterApp() {
+            clearTimeout(syncTimeout);
+            elements.loadingOverlay.classList.add('hidden');
+            elements.mainContent.classList.remove('hidden');
+            setTimeout(() => elements.mainContent.classList.add('opacity-100'), 100);
+            renderDashboard();
         }
 
         function startSync() {
@@ -233,19 +251,24 @@
 
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'expenses_final');
             
-            onSnapshot(q, (snapshot) => {
+            // 使用 onSnapshot，它会立即触发第一次（即使数据为空）
+            const unsubscribe = onSnapshot(q, (snapshot) => {
                 expenses = snapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(exp => exp.pass === CORRECT_PASS)
                     .sort((a, b) => new Date(b.date) - new Date(a.date));
                 
-                elements.loadingOverlay.classList.add('hidden');
-                elements.mainContent.classList.remove('hidden');
-                setTimeout(() => elements.mainContent.classList.add('opacity-100'), 100);
-                renderDashboard();
+                enterApp();
             }, (err) => {
                 console.error("Sync Error:", err);
-                showToast("数据同步失败，请刷新");
+                // 如果是权限错误，通常会触发这里
+                if (err.code === 'permission-denied') {
+                    showToast("同步权限被拒：请在 Firebase 检查 Firestore 是否开启了测试模式");
+                } else {
+                    showToast("云端连接错误，请检查网络");
+                }
+                // 错误时也允许进入，方便用户录入新数据
+                enterApp();
             });
         }
 
@@ -273,6 +296,7 @@
         elements.expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!user) {
+                showToast("正在尝试恢复云端连接...");
                 await initAuth();
                 if (!user) return;
             }
@@ -300,9 +324,10 @@
                 });
                 elements.expenseForm.reset();
                 document.getElementById('date').value = new Date().toISOString().split('T')[0];
-                showToast('已同步');
+                showToast('已同步到云端');
             } catch (err) {
-                showToast('保存失败');
+                console.error("Save Error:", err);
+                showToast('同步失败，请确保数据库已设为测试模式');
             } finally {
                 elements.submitBtn.disabled = false;
                 elements.submitBtn.innerText = '确认云端同步';
@@ -331,7 +356,7 @@
                 `;
             }).join('');
 
-            elements.detailList.innerHTML = expenses.map(e => `
+            elements.detailList.innerHTML = expenses.length > 0 ? expenses.map(e => `
                 <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                         ${e.photo ? `<img src="${e.photo}" class="w-12 h-12 rounded-lg object-cover cursor-pointer" onclick="window.showImg('${e.photo}')">` : `<div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] text-gray-300">无图</div>`}
@@ -345,7 +370,7 @@
                         <button onclick="window.deleteRecord('${e.id}')" class="text-[9px] text-red-300 font-black uppercase">删除</button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : '<div class="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">暂无明细或云端未就绪</div>';
         }
 
         window.showImg = (src) => { elements.modalImg.src = src; elements.modal.classList.remove('hidden'); };
@@ -353,16 +378,16 @@
             if(!confirm('确定删除记录？')) return;
             try {
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'expenses_final', id));
-                showToast('已删除');
+                showToast('已从云端删除');
             } catch (err) {
-                showToast("删除失败");
+                showToast("删除失败，请检查数据库权限");
             }
         };
 
         function showToast(msg) {
             elements.toast.innerText = msg;
             elements.toast.classList.remove('opacity-0');
-            setTimeout(() => elements.toast.classList.add('opacity-0'), 2500);
+            setTimeout(() => elements.toast.classList.add('opacity-0'), 3500);
         }
 
         window.onload = () => { 
