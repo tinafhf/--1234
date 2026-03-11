@@ -59,7 +59,7 @@
     <div id="loading-overlay" class="fixed inset-0 bg-[#f0f2f5] z-[90] hidden flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
         <p id="loading-text" class="text-sm font-black text-gray-400 tracking-widest uppercase text-center px-4">正在同步实时数据...</p>
-        <button id="force-entry" class="mt-8 text-[10px] text-blue-500 font-bold hidden">如果长时间没反应，点击尝试强制进入</button>
+        <button id="force-entry" class="mt-8 text-[10px] text-blue-500 font-bold hidden underline">如果长时间没反应，点击尝试强制进入</button>
     </div>
 
     <div class="max-w-5xl mx-auto">
@@ -128,22 +128,23 @@
         </section>
 
         <footer class="mt-20 text-center">
-            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Cloud Ledger v4.4</span>
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Cloud Ledger v4.5 (Mobile Fix)</span>
         </footer>
     </div>
 
     <!-- 图片模态框 -->
     <div id="img-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[120] hidden flex items-center justify-center p-4" onclick="this.classList.add('hidden')">
-        <img id="modal-content" src="" class="max-w-full max-h-full rounded-lg">
+        <img id="modal-content" src="" class="max-w-full max-h-full rounded-lg shadow-2xl">
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none text-center">提示消息</div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-8 py-3 rounded-full shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none text-center min-w-[200px]">提示消息</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, query, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // 配置信息 (使用您提供的图片中的配置)
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyAEZIV2HinNgL-8fTiRTlkXZPOLD1MEc9s",
             authDomain: "my-family-ledger-26989.firebaseapp.com",
@@ -186,45 +187,64 @@
             modalImg: document.getElementById('modal-content')
         };
 
+        // 统一身份验证：返回 Promise 确保在手机端被严格等待
         const initAuth = async () => {
-            if (isAuthenticating) return;
+            if (user) return user;
+            if (isAuthenticating) return new Promise(resolve => {
+                const check = setInterval(() => {
+                    if (user) { clearInterval(check); resolve(user); }
+                }, 100);
+            });
+            
             isAuthenticating = true;
             try {
+                let u;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    const result = await signInWithCustomToken(auth, __initial_auth_token);
+                    u = result.user;
                 } else {
-                    await signInAnonymously(auth);
+                    const result = await signInAnonymously(auth);
+                    u = result.user;
                 }
+                user = u;
+                return u;
             } catch (err) {
                 console.error("Auth Error:", err);
-                showToast("连接失败。请确保 Firebase 开启了 Anonymous Auth。");
+                showToast("连接云端失败，请检查手机网络");
+                return null;
             } finally {
                 isAuthenticating = false;
             }
         };
 
         onAuthStateChanged(auth, (u) => { 
-            user = u;
-            if (!u && !isAuthenticating) initAuth();
+            if (u) user = u;
         });
 
         elements.loginBtn.addEventListener('click', handleLogin);
         elements.loginInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleLogin(); });
 
         async function handleLogin() {
-            if (elements.loginInput.value.trim() === CORRECT_PASS) {
+            const inputVal = elements.loginInput.value.trim();
+            if (inputVal === CORRECT_PASS) {
                 elements.loginError.classList.add('opacity-0');
                 elements.loginOverlay.classList.add('hidden');
                 elements.loadingOverlay.classList.remove('hidden');
                 
-                // 设置超时监控
+                // 设置移动端超时保险丝
                 syncTimeout = setTimeout(() => {
-                    elements.loadingText.innerText = "数据同步缓慢，请检查网络或 Firebase Firestore 是否已开启（测试模式）";
+                    elements.loadingText.innerText = "手机网络连接较慢，正在努力加载中...";
                     elements.forceEntryBtn.classList.remove('hidden');
-                }, 8000);
+                }, 6000);
 
-                if (!user) await initAuth();
-                startSync();
+                // 强制等待身份验证完成
+                const authenticatedUser = await initAuth();
+                if (authenticatedUser) {
+                    startSync();
+                } else {
+                    showToast("身份验证超时，点击强制进入");
+                    elements.forceEntryBtn.classList.remove('hidden');
+                }
             } else {
                 elements.loginError.classList.remove('opacity-0');
             }
@@ -232,7 +252,7 @@
 
         elements.forceEntryBtn.addEventListener('click', () => {
             enterApp();
-            showToast("已尝试强制进入，部分数据可能延迟显示");
+            showToast("已强制载入界面");
         });
 
         function enterApp() {
@@ -244,15 +264,12 @@
         }
 
         function startSync() {
-            if (!user) { 
-                setTimeout(startSync, 500); 
-                return; 
-            }
+            if (!user) return;
 
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'expenses_final');
             
-            // 使用 onSnapshot，它会立即触发第一次（即使数据为空）
-            const unsubscribe = onSnapshot(q, (snapshot) => {
+            // 实时同步，带手机端容错回调
+            onSnapshot(q, (snapshot) => {
                 expenses = snapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(exp => exp.pass === CORRECT_PASS)
@@ -261,14 +278,10 @@
                 enterApp();
             }, (err) => {
                 console.error("Sync Error:", err);
-                // 如果是权限错误，通常会触发这里
                 if (err.code === 'permission-denied') {
-                    showToast("同步权限被拒：请在 Firebase 检查 Firestore 是否开启了测试模式");
-                } else {
-                    showToast("云端连接错误，请检查网络");
+                    showToast("同步权限错误，请检查 Firebase 规则");
                 }
-                // 错误时也允许进入，方便用户录入新数据
-                enterApp();
+                enterApp(); // 出错也要进界面，保证录入功能可用
             });
         }
 
@@ -295,14 +308,11 @@
 
         elements.expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!user) {
-                showToast("正在尝试恢复云端连接...");
-                await initAuth();
-                if (!user) return;
-            }
+            const u = await initAuth(); // 提交前再次确认登录状态
+            if (!u) return showToast("未连接到云端，请检查网络");
             
             elements.submitBtn.disabled = true;
-            elements.submitBtn.innerText = '同步中...';
+            elements.submitBtn.innerText = '正在同步...';
 
             const category = document.getElementById('category').value;
             const amount = parseFloat(document.getElementById('amount').value);
@@ -324,10 +334,10 @@
                 });
                 elements.expenseForm.reset();
                 document.getElementById('date').value = new Date().toISOString().split('T')[0];
-                showToast('已同步到云端');
+                showToast('同步成功！家人已可见');
             } catch (err) {
                 console.error("Save Error:", err);
-                showToast('同步失败，请确保数据库已设为测试模式');
+                showToast('保存失败，请检查网络权限');
             } finally {
                 elements.submitBtn.disabled = false;
                 elements.submitBtn.innerText = '确认云端同步';
@@ -357,7 +367,7 @@
             }).join('');
 
             elements.detailList.innerHTML = expenses.length > 0 ? expenses.map(e => `
-                <div class="p-4 flex items-center justify-between">
+                <div class="p-4 flex items-center justify-between active:bg-gray-100 transition-colors">
                     <div class="flex items-center space-x-4">
                         ${e.photo ? `<img src="${e.photo}" class="w-12 h-12 rounded-lg object-cover cursor-pointer" onclick="window.showImg('${e.photo}')">` : `<div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] text-gray-300">无图</div>`}
                         <div>
@@ -367,20 +377,20 @@
                     </div>
                     <div class="text-right">
                         <div class="text-sm font-black klein-blue">¥${e.amount.toFixed(2)}</div>
-                        <button onclick="window.deleteRecord('${e.id}')" class="text-[9px] text-red-300 font-black uppercase">删除</button>
+                        <button onclick="window.deleteRecord('${e.id}')" class="text-[9px] text-red-300 font-black uppercase p-2">删除</button>
                     </div>
                 </div>
-            `).join('') : '<div class="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">暂无明细或云端未就绪</div>';
+            `).join('') : '<div class="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">暂无记录</div>';
         }
 
         window.showImg = (src) => { elements.modalImg.src = src; elements.modal.classList.remove('hidden'); };
         window.deleteRecord = async (id) => {
-            if(!confirm('确定删除记录？')) return;
+            if(!confirm('确定从所有设备删除此条记录？')) return;
             try {
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'expenses_final', id));
-                showToast('已从云端删除');
+                showToast('已删除');
             } catch (err) {
-                showToast("删除失败，请检查数据库权限");
+                showToast("删除失败");
             }
         };
 
@@ -392,6 +402,8 @@
 
         window.onload = () => { 
             document.getElementById('date').value = new Date().toISOString().split('T')[0]; 
+            // 预加载验证
+            initAuth();
         };
     </script>
 </body>
